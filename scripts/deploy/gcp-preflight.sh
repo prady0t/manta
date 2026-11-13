@@ -56,6 +56,7 @@ token=$(gcloud auth print-access-token)
 echo "Authenticated as ${account:-unknown}"
 
 missing=0
+unchecked=0
 
 # check <project> <permission>...
 check() {
@@ -75,6 +76,7 @@ check() {
     # account's own project. Not fatal: a missing permission still fails the
     # step that needs it, just one at a time.
     echo "::warning::Could not check the permissions in $project: $(jq -r '.error.message // .' <<<"$response" 2>/dev/null || echo "$response")"
+    unchecked=1
     return 0
   fi
 
@@ -97,4 +99,8 @@ if [ "$missing" -ne 0 ]; then
   echo "::error::$account is missing permissions (see the list above). docs/deployment.md lists the roles to grant."
   exit 1
 fi
-echo "All checked permissions are granted."
+if [ "$unchecked" -ne 0 ]; then
+  echo "Some permissions could not be checked (see the warnings above), so they are unverified."
+else
+  echo "All checked permissions are granted."
+fi
